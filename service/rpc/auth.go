@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"log"
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -80,5 +81,6 @@ func (a *authHandler) Check(ctx context.Context) (uint64, error) {
 		clientID = s.ID
 	}
 
+	log.Printf("ID acquired: %d, Metadata: %v", clientID, md)
 	return clientID, nil
 }
