@@ -20,6 +20,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/libdns/cloudflare v0.1.1
 	github.com/libdns/libdns v0.2.2
+	github.com/lunixbochs/struc v0.0.0-20241101090106-8d528fa2c543
 	github.com/miekg/dns v1.1.62
 	github.com/nezhahq/libdns-tencentcloud v0.0.0-20241029120103-889957240fff
 	github.com/ory/graceful v0.1.3

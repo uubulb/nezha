@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
+
+	"github.com/nezhahq/nezha/model"
 	"github.com/nezhahq/nezha/pkg/ddns"
 	geoipx "github.com/nezhahq/nezha/pkg/geoip"
 	"github.com/nezhahq/nezha/pkg/grpcx"
-
-	"github.com/nezhahq/nezha/model"
 	pb "github.com/nezhahq/nezha/proto"
 	"github.com/nezhahq/nezha/service/singleton"
 )
