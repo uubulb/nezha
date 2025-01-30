@@ -233,10 +233,15 @@ func getServerConfig(c *gin.Context) (string, error) {
 
 	singleton.ServerLock.RLock()
 	s, ok := singleton.ServerList[id]
-	if !ok {
+	if !ok || s.TaskStream == nil {
+		singleton.ServerLock.RUnlock()
 		return "", nil
 	}
 	singleton.ServerLock.RUnlock()
+
+	if !s.HasPermission(c) {
+		return "", singleton.Localizer.ErrorT("permission denied")
+	}
 
 	if err := s.TaskStream.Send(&pb.Task{
 		Type: model.TaskTypeReportConfig,
@@ -286,10 +291,15 @@ func setServerConfig(c *gin.Context) (any, error) {
 
 	singleton.ServerLock.RLock()
 	s, ok := singleton.ServerList[id]
-	if !ok {
+	if !ok || s.TaskStream == nil {
+		singleton.ServerLock.RUnlock()
 		return "", nil
 	}
 	singleton.ServerLock.RUnlock()
+
+	if !s.HasPermission(c) {
+		return "", singleton.Localizer.ErrorT("permission denied")
+	}
 
 	if err := s.TaskStream.Send(&pb.Task{
 		Type: model.TaskTypeApplyConfig,
