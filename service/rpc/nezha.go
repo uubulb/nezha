@@ -82,12 +82,12 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 			}
 		case model.TaskTypeReportConfig:
 			singleton.ServerLock.RLock()
-			if !result.GetSuccessful() {
-				singleton.ServerList[clientID].ConfigCache <- errors.New(result.Data)
-				singleton.ServerLock.RUnlock()
-				continue
-			}
 			if len(singleton.ServerList[clientID].ConfigCache) < 1 {
+				if !result.GetSuccessful() {
+					singleton.ServerList[clientID].ConfigCache <- errors.New(result.Data)
+					singleton.ServerLock.RUnlock()
+					continue
+				}
 				singleton.ServerList[clientID].ConfigCache <- result.Data
 			}
 			singleton.ServerLock.RUnlock()
