@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 14:31+0800\n"
+"POT-Creation-Date: 2025-01-30 21:58+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -162,8 +162,16 @@ msgstr ""
 msgid "server id %d does not exist"
 msgstr ""
 
-#: cmd/dashboard/controller/server.go:251
+#: cmd/dashboard/controller/server.go:250
 msgid "operation timeout"
+msgstr ""
+
+#: cmd/dashboard/controller/server.go:257
+msgid "get server config failed: %v"
+msgstr ""
+
+#: cmd/dashboard/controller/server.go:261
+msgid "get server config failed"
 msgstr ""
 
 #: cmd/dashboard/controller/server_group.go:92
@@ -217,15 +225,15 @@ msgstr ""
 msgid "timeout: agent connection not established"
 msgstr ""
 
-#: service/rpc/nezha.go:70
+#: service/rpc/nezha.go:71
 msgid "Scheduled Task Executed Successfully"
 msgstr ""
 
-#: service/rpc/nezha.go:74
+#: service/rpc/nezha.go:75
 msgid "Scheduled Task Executed Failed"
 msgstr ""
 
-#: service/rpc/nezha.go:268
+#: service/rpc/nezha.go:274
 msgid "IP Changed"
 msgstr ""
 
