@@ -54,7 +54,8 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 			log.Printf("NEZHA>> RequestTask error: %v, clientID: %d\n", err, clientID)
 			return nil
 		}
-		if result.GetType() == model.TaskTypeCommand {
+		switch result.GetType() {
+		case model.TaskTypeCommand:
 			// 处理上报的计划任务
 			singleton.CronLock.RLock()
 			cr := singleton.Crons[result.GetId()]
@@ -78,11 +79,19 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 					LastResult:     result.GetSuccessful(),
 				})
 			}
-		} else if model.IsServiceSentinelNeeded(result.GetType()) {
-			singleton.ServiceSentinelShared.Dispatch(singleton.ReportData{
-				Data:     result,
-				Reporter: clientID,
-			})
+		case model.TaskTypeReportConfig:
+			singleton.ServerLock.RLock()
+			if len(singleton.ServerList[clientID].ConfigCache) < 1 {
+				singleton.ServerList[clientID].ConfigCache <- result.Data
+			}
+			singleton.ServerLock.RUnlock()
+		default:
+			if model.IsServiceSentinelNeeded(result.GetType()) {
+				singleton.ServiceSentinelShared.Dispatch(singleton.ReportData{
+					Data:     result,
+					Reporter: clientID,
+				})
+			}
 		}
 	}
 }

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -212,4 +213,86 @@ func forceUpdateServer(c *gin.Context) (*model.ForceUpdateResponse, error) {
 	}
 
 	return forceUpdateResp, nil
+}
+
+// Get server config
+// @Summary Get server config
+// @Security BearerAuth
+// @Schemes
+// @Description Get server config
+// @Tags auth required
+// @Produce json
+// @Success 200 {object} model.CommonResponse[string]
+// @Router /server/{id}/config [get]
+func getServerConfig(c *gin.Context) (string, error) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	singleton.ServerLock.RLock()
+	s, ok := singleton.ServerList[id]
+	if !ok {
+		return "", nil
+	}
+	singleton.ServerLock.RUnlock()
+
+	if err := s.TaskStream.Send(&pb.Task{
+		Type: model.TaskTypeReportConfig,
+	}); err != nil {
+		return "", err
+	}
+
+	var config string
+	timeout := time.NewTimer(time.Second * 10)
+	select {
+	case <-timeout.C:
+		return "", singleton.Localizer.ErrorT("operation timeout")
+	case config = <-s.ConfigCache:
+		timeout.Stop()
+		break
+	}
+
+	return config, nil
+}
+
+// Set server config
+// @Summary Set server config
+// @Security BearerAuth
+// @Schemes
+// @Description Set server config
+// @Tags auth required
+// @Accept json
+// @param request body string true "config"
+// @Produce json
+// @Success 200 {object} model.CommonResponse[any]
+// @Router /server/{id}/config [post]
+func setServerConfig(c *gin.Context) (any, error) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	var configRaw string
+	if err := c.ShouldBindJSON(&configRaw); err != nil {
+		return nil, err
+	}
+
+	singleton.ServerLock.RLock()
+	s, ok := singleton.ServerList[id]
+	if !ok {
+		return "", nil
+	}
+	singleton.ServerLock.RUnlock()
+
+	if err := s.TaskStream.Send(&pb.Task{
+		Type: model.TaskTypeApplyConfig,
+		Data: configRaw,
+	}); err != nil {
+		return "", err
+	}
+
+	return nil, nil
 }
