@@ -251,7 +251,6 @@ func getServerConfig(c *gin.Context) (string, error) {
 		return "", singleton.Localizer.ErrorT("operation timeout")
 	case config = <-s.ConfigCache:
 		timeout.Stop()
-		break
 	}
 
 	return config, nil
