@@ -244,16 +244,21 @@ func getServerConfig(c *gin.Context) (string, error) {
 		return "", err
 	}
 
-	var config string
 	timeout := time.NewTimer(time.Second * 10)
 	select {
 	case <-timeout.C:
 		return "", singleton.Localizer.ErrorT("operation timeout")
-	case config = <-s.ConfigCache:
+	case data := <-s.ConfigCache:
 		timeout.Stop()
+		switch data := data.(type) {
+		case string:
+			return data, nil
+		case error:
+			return "", singleton.Localizer.ErrorT("get server config failed: %v", data)
+		}
 	}
 
-	return config, nil
+	return "", singleton.Localizer.ErrorT("get server config failed")
 }
 
 // Set server config

@@ -33,7 +33,7 @@ type Server struct {
 	LastActive time.Time  `gorm:"-" json:"last_active,omitempty"`
 
 	TaskStream  pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
-	ConfigCache chan string                       `gorm:"-" json:"-"`
+	ConfigCache chan any                          `gorm:"-" json:"-"`
 
 	PrevTransferInSnapshot  int64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
 	PrevTransferOutSnapshot int64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
@@ -43,7 +43,7 @@ func InitServer(s *Server) {
 	s.Host = &Host{}
 	s.State = &HostState{}
 	s.GeoIP = &GeoIP{}
-	s.ConfigCache = make(chan string, 1)
+	s.ConfigCache = make(chan any, 1)
 }
 
 func (s *Server) CopyFromRunningServer(old *Server) {
