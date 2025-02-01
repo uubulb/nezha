@@ -224,7 +224,7 @@ func forceUpdateServer(c *gin.Context) (*model.ForceUpdateResponse, error) {
 // @Tags auth required
 // @Produce json
 // @Success 200 {object} model.CommonResponse[string]
-// @Router /server/{id}/config [get]
+// @Router /server/config/{id} [get]
 func getServerConfig(c *gin.Context) (string, error) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
