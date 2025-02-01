@@ -273,40 +273,38 @@ func getServerConfig(c *gin.Context) (string, error) {
 // @Description Set server config
 // @Tags auth required
 // @Accept json
-// @param request body string true "config"
+// @Param body body model.ServerConfigForm true "ServerConfigForm"
 // @Produce json
 // @Success 200 {object} model.CommonResponse[any]
-// @Router /server/{id}/config [post]
+// @Router /server/config [post]
 func setServerConfig(c *gin.Context) (any, error) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		return "", err
-	}
-
-	var configRaw string
-	if err := c.ShouldBindJSON(&configRaw); err != nil {
+	var configForm model.ServerConfigForm
+	if err := c.ShouldBindJSON(&configForm); err != nil {
 		return nil, err
 	}
 
 	singleton.ServerLock.RLock()
-	s, ok := singleton.ServerList[id]
-	if !ok || s.TaskStream == nil {
-		singleton.ServerLock.RUnlock()
-		return "", nil
+	for _, sid := range configForm.Servers {
+		s, ok := singleton.ServerList[sid]
+		if !ok || s.TaskStream == nil {
+			singleton.ServerLock.RUnlock()
+			return "", nil
+		}
+
+		if !s.HasPermission(c) {
+			singleton.ServerLock.RUnlock()
+			return "", singleton.Localizer.ErrorT("permission denied")
+		}
+
+		if err := s.TaskStream.Send(&pb.Task{
+			Type: model.TaskTypeApplyConfig,
+			Data: configForm.Config,
+		}); err != nil {
+			singleton.ServerLock.RUnlock()
+			return "", err
+		}
 	}
+
 	singleton.ServerLock.RUnlock()
-
-	if !s.HasPermission(c) {
-		return "", singleton.Localizer.ErrorT("permission denied")
-	}
-
-	if err := s.TaskStream.Send(&pb.Task{
-		Type: model.TaskTypeApplyConfig,
-		Data: configRaw,
-	}); err != nil {
-		return "", err
-	}
-
 	return nil, nil
 }
