@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -284,27 +285,56 @@ func setServerConfig(c *gin.Context) (any, error) {
 	}
 
 	singleton.ServerLock.RLock()
+	servers := make([]*model.Server, 0, len(configForm.Servers))
 	for _, sid := range configForm.Servers {
 		s, ok := singleton.ServerList[sid]
 		if !ok || s.TaskStream == nil {
 			singleton.ServerLock.RUnlock()
 			return "", nil
 		}
+		servers = append(servers, s)
+	}
+	singleton.ServerLock.RUnlock()
 
-		if !s.HasPermission(c) {
-			singleton.ServerLock.RUnlock()
-			return "", singleton.Localizer.ErrorT("permission denied")
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(servers)/10+1)
+
+	for i := 0; i < len(servers); i += 10 {
+		end := i + 10
+		if end > len(servers) {
+			end = len(servers)
 		}
+		group := servers[i:end]
 
-		if err := s.TaskStream.Send(&pb.Task{
-			Type: model.TaskTypeApplyConfig,
-			Data: configForm.Config,
-		}); err != nil {
-			singleton.ServerLock.RUnlock()
+		wg.Add(1)
+		go func(srvGroup []*model.Server) {
+			defer wg.Done()
+			for _, s := range srvGroup {
+				if !s.HasPermission(c) {
+					errChan <- singleton.Localizer.ErrorT("permission denied")
+					return
+				}
+				// Create and send the task.
+				task := &pb.Task{
+					Type: model.TaskTypeApplyConfig,
+					Data: configForm.Config,
+				}
+				if err := s.TaskStream.Send(task); err != nil {
+					errChan <- err
+					return
+				}
+			}
+		}(group)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
 			return "", err
 		}
 	}
 
-	singleton.ServerLock.RUnlock()
 	return nil, nil
 }
