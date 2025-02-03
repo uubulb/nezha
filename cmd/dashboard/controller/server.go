@@ -183,15 +183,15 @@ func batchDeleteServer(c *gin.Context) (any, error) {
 // @Accept json
 // @param request body []uint64 true "id list"
 // @Produce json
-// @Success 200 {object} model.CommonResponse[model.ForceUpdateResponse]
+// @Success 200 {object} model.CommonResponse[model.ServerTaskResponse]
 // @Router /force-update/server [post]
-func forceUpdateServer(c *gin.Context) (*model.ForceUpdateResponse, error) {
+func forceUpdateServer(c *gin.Context) (*model.ServerTaskResponse, error) {
 	var forceUpdateServers []uint64
 	if err := c.ShouldBindJSON(&forceUpdateServers); err != nil {
 		return nil, err
 	}
 
-	forceUpdateResp := new(model.ForceUpdateResponse)
+	forceUpdateResp := new(model.ServerTaskResponse)
 
 	for _, sid := range forceUpdateServers {
 		singleton.ServerLock.RLock()
@@ -276,28 +276,32 @@ func getServerConfig(c *gin.Context) (string, error) {
 // @Accept json
 // @Param body body model.ServerConfigForm true "ServerConfigForm"
 // @Produce json
-// @Success 200 {object} model.CommonResponse[any]
+// @Success 200 {object} model.CommonResponse[model.ServerTaskResponse]
 // @Router /server/config [post]
-func setServerConfig(c *gin.Context) (any, error) {
+func setServerConfig(c *gin.Context) (*model.ServerTaskResponse, error) {
 	var configForm model.ServerConfigForm
 	if err := c.ShouldBindJSON(&configForm); err != nil {
 		return nil, err
 	}
 
+	var resp model.ServerTaskResponse
 	singleton.ServerLock.RLock()
 	servers := make([]*model.Server, 0, len(configForm.Servers))
 	for _, sid := range configForm.Servers {
 		s, ok := singleton.ServerList[sid]
 		if !ok || s.TaskStream == nil {
+			resp.Offline = append(resp.Offline, sid)
+		}
+		if !s.HasPermission(c) {
 			singleton.ServerLock.RUnlock()
-			return "", nil
+			return nil, singleton.Localizer.ErrorT("permission denied")
 		}
 		servers = append(servers, s)
 	}
 	singleton.ServerLock.RUnlock()
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(servers)/10+1)
+	var respMu sync.Mutex
 
 	for i := 0; i < len(servers); i += 10 {
 		end := i + 10
@@ -310,31 +314,24 @@ func setServerConfig(c *gin.Context) (any, error) {
 		go func(srvGroup []*model.Server) {
 			defer wg.Done()
 			for _, s := range srvGroup {
-				if !s.HasPermission(c) {
-					errChan <- singleton.Localizer.ErrorT("permission denied")
-					return
-				}
 				// Create and send the task.
 				task := &pb.Task{
 					Type: model.TaskTypeApplyConfig,
 					Data: configForm.Config,
 				}
 				if err := s.TaskStream.Send(task); err != nil {
-					errChan <- err
-					return
+					respMu.Lock()
+					resp.Failure = append(resp.Failure, s.ID)
+					respMu.Unlock()
+					continue
 				}
+				respMu.Lock()
+				resp.Success = append(resp.Success, s.ID)
+				respMu.Unlock()
 			}
 		}(group)
 	}
 
 	wg.Wait()
-	close(errChan)
-
-	for err := range errChan {
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return nil, nil
+	return &resp, nil
 }

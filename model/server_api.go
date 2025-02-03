@@ -36,7 +36,7 @@ type ServerConfigForm struct {
 	Config  string   `json:"config,omitempty"`
 }
 
-type ForceUpdateResponse struct {
+type ServerTaskResponse struct {
 	Success []uint64 `json:"success,omitempty" validate:"optional"`
 	Failure []uint64 `json:"failure,omitempty" validate:"optional"`
 	Offline []uint64 `json:"offline,omitempty" validate:"optional"`
