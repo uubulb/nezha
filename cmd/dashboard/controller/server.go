@@ -288,15 +288,17 @@ func setServerConfig(c *gin.Context) (*model.ServerTaskResponse, error) {
 	singleton.ServerLock.RLock()
 	servers := make([]*model.Server, 0, len(configForm.Servers))
 	for _, sid := range configForm.Servers {
-		s, ok := singleton.ServerList[sid]
-		if !ok || s.TaskStream == nil {
-			resp.Offline = append(resp.Offline, sid)
+		if s, ok := singleton.ServerList[sid]; ok {
+			if !s.HasPermission(c) {
+				singleton.ServerLock.RUnlock()
+				return nil, singleton.Localizer.ErrorT("permission denied")
+			}
+			if s.TaskStream == nil {
+				resp.Offline = append(resp.Offline, s.ID)
+				continue
+			}
+			servers = append(servers, s)
 		}
-		if !s.HasPermission(c) {
-			singleton.ServerLock.RUnlock()
-			return nil, singleton.Localizer.ErrorT("permission denied")
-		}
-		servers = append(servers, s)
 	}
 	singleton.ServerLock.RUnlock()
 
