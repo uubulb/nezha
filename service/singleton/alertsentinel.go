@@ -132,15 +132,14 @@ func OnDeleteAlert(id []uint64) {
 func checkStatus() {
 	AlertsLock.RLock()
 	defer AlertsLock.RUnlock()
-	ServerLock.RLock()
-	defer ServerLock.RUnlock()
+	m := ServerShared.GetList()
 
 	for _, alert := range Alerts {
 		// 跳过未启用
 		if !alert.Enabled() {
 			continue
 		}
-		for _, server := range ServerList {
+		for _, server := range m {
 			// 监测点
 			UserLock.RLock()
 			var role uint8

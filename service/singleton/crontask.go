@@ -128,9 +128,8 @@ func CronTrigger(cr *model.Cron, triggerServer ...uint64) func() {
 			if len(triggerServer) == 0 {
 				return
 			}
-			ServerLock.RLock()
-			defer ServerLock.RUnlock()
-			if s, ok := ServerList[triggerServer[0]]; ok {
+			m := ServerShared.GetList()
+			if s, ok := m[triggerServer[0]]; ok {
 				if s.TaskStream != nil {
 					s.TaskStream.Send(&pb.Task{
 						Id:   cr.ID,
@@ -147,9 +146,8 @@ func CronTrigger(cr *model.Cron, triggerServer ...uint64) func() {
 			return
 		}
 
-		ServerLock.RLock()
-		defer ServerLock.RUnlock()
-		for _, s := range ServerList {
+		m := ServerShared.GetList()
+		for _, s := range m {
 			if cr.Cover == model.CronCoverAll && crIgnoreMap[s.ID] {
 				continue
 			}

@@ -23,6 +23,8 @@ var (
 	Loc               *time.Location
 	FrontendTemplates []model.FrontendTemplate
 	DashboardBootTime = uint64(time.Now().Unix())
+
+	ServerShared *ServerClass
 )
 
 //go:embed frontend-templates.yaml
@@ -40,11 +42,11 @@ func InitTimezoneAndCache() {
 
 // LoadSingleton 加载子服务并执行
 func LoadSingleton() {
-	initUser()          // 加载用户ID绑定表
-	initI18n()          // 加载本地化服务
-	loadNotifications() // 加载通知服务
-	loadServers()       // 加载服务器列表
-	loadCronTasks()     // 加载定时任务
+	initUser()                      // 加载用户ID绑定表
+	initI18n()                      // 加载本地化服务
+	loadNotifications()             // 加载通知服务
+	ServerShared = NewServerClass() // 加载服务器列表
+	loadCronTasks()                 // 加载定时任务
 	initNAT()
 	initDDNS()
 }
@@ -90,12 +92,13 @@ func InitDBFromPath(path string) {
 
 // RecordTransferHourlyUsage 对流量记录进行打点
 func RecordTransferHourlyUsage() {
-	ServerLock.Lock()
-	defer ServerLock.Unlock()
+	ServerShared.listMu.RLock()
+	defer ServerShared.listMu.RUnlock()
+
 	now := time.Now()
 	nowTrimSeconds := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	var txs []model.Transfer
-	for id, server := range ServerList {
+	for id, server := range ServerShared.list {
 		tx := model.Transfer{
 			ServerID: id,
 			In:       utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot),
