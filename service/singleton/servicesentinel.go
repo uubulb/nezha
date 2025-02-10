@@ -21,8 +21,6 @@ const (
 	_CurrentStatusSize = 30 // 统计 15 分钟内的数据为当前状态
 )
 
-var ServiceSentinelShared *ServiceSentinel
-
 type serviceResponseItem struct {
 	model.ServiceResponseItem
 
@@ -42,8 +40,8 @@ type _TodayStatsOfService struct {
 }
 
 // NewServiceSentinel 创建服务监控器
-func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) {
-	ServiceSentinelShared = &ServiceSentinel{
+func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) (*ServiceSentinel, error) {
+	ss := &ServiceSentinel{
 		serviceReportChannel:                    make(chan ReportData, 200),
 		serviceStatusToday:                      make(map[uint64]*_TodayStatsOfService),
 		serviceCurrentStatusIndex:               make(map[uint64]*indexStore),
@@ -60,7 +58,7 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) {
 		dispatchBus:   serviceSentinelDispatchBus,
 	}
 	// 加载历史记录
-	ServiceSentinelShared.loadServiceHistory()
+	ss.loadServiceHistory()
 
 	year, month, day := time.Now().Date()
 	today := time.Date(year, month, day, 0, 0, 0, 0, Loc)
@@ -73,23 +71,25 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) {
 	for i := 0; i < len(mhs); i++ {
 		totalDelay[mhs[i].ServiceID] += mhs[i].AvgDelay
 		totalDelayCount[mhs[i].ServiceID]++
-		ServiceSentinelShared.serviceStatusToday[mhs[i].ServiceID].Up += int(mhs[i].Up)
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].TotalUp += mhs[i].Up
-		ServiceSentinelShared.serviceStatusToday[mhs[i].ServiceID].Down += int(mhs[i].Down)
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].TotalDown += mhs[i].Down
+		ss.serviceStatusToday[mhs[i].ServiceID].Up += int(mhs[i].Up)
+		ss.monthlyStatus[mhs[i].ServiceID].TotalUp += mhs[i].Up
+		ss.serviceStatusToday[mhs[i].ServiceID].Down += int(mhs[i].Down)
+		ss.monthlyStatus[mhs[i].ServiceID].TotalDown += mhs[i].Down
 	}
 	for id, delay := range totalDelay {
-		ServiceSentinelShared.serviceStatusToday[id].Delay = delay / float32(totalDelayCount[id])
+		ss.serviceStatusToday[id].Delay = delay / float32(totalDelayCount[id])
 	}
 
 	// 启动服务监控器
-	go ServiceSentinelShared.worker()
+	go ss.worker()
 
 	// 每日将游标往后推一天
-	_, err := Cron.AddFunc("0 0 0 * * *", ServiceSentinelShared.refreshMonthlyServiceStatus)
+	_, err := Cron.AddFunc("0 0 0 * * *", ss.refreshMonthlyServiceStatus)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	return ss, nil
 }
 
 /*
@@ -210,7 +210,7 @@ func (ss *ServiceSentinel) loadServiceHistory() {
 	today := time.Date(year, month, day, 0, 0, 0, 0, Loc)
 
 	for i := 0; i < len(services); i++ {
-		ServiceSentinelShared.monthlyStatus[services[i].ID] = &serviceResponseItem{
+		ss.monthlyStatus[services[i].ID] = &serviceResponseItem{
 			service: services[i],
 			ServiceResponseItem: model.ServiceResponseItem{
 				Delay: &[30]float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -229,12 +229,12 @@ func (ss *ServiceSentinel) loadServiceHistory() {
 		if dayIndex < 0 {
 			continue
 		}
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].Delay[dayIndex] = (ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].Delay[dayIndex]*float32(delayCount[dayIndex]) + mhs[i].AvgDelay) / float32(delayCount[dayIndex]+1)
+		ss.monthlyStatus[mhs[i].ServiceID].Delay[dayIndex] = (ss.monthlyStatus[mhs[i].ServiceID].Delay[dayIndex]*float32(delayCount[dayIndex]) + mhs[i].AvgDelay) / float32(delayCount[dayIndex]+1)
 		delayCount[dayIndex]++
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].Up[dayIndex] += int(mhs[i].Up)
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].TotalUp += mhs[i].Up
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].Down[dayIndex] += int(mhs[i].Down)
-		ServiceSentinelShared.monthlyStatus[mhs[i].ServiceID].TotalDown += mhs[i].Down
+		ss.monthlyStatus[mhs[i].ServiceID].Up[dayIndex] += int(mhs[i].Up)
+		ss.monthlyStatus[mhs[i].ServiceID].TotalUp += mhs[i].Up
+		ss.monthlyStatus[mhs[i].ServiceID].Down[dayIndex] += int(mhs[i].Down)
+		ss.monthlyStatus[mhs[i].ServiceID].TotalDown += mhs[i].Down
 	}
 }
 

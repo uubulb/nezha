@@ -122,7 +122,10 @@ func main() {
 	rpc.DispatchKeepalive()
 	go rpc.DispatchTask(serviceSentinelDispatchBus)
 	go singleton.AlertSentinelStart()
-	singleton.NewServiceSentinel(serviceSentinelDispatchBus)
+	singleton.ServiceSentinelShared, err = singleton.NewServiceSentinel(serviceSentinelDispatchBus)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	grpcHandler := rpc.ServeRPC()
 	httpHandler := controller.ServeWeb(frontendDist)

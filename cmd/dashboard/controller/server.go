@@ -223,8 +223,7 @@ func getServerConfig(c *gin.Context) (string, error) {
 		return "", err
 	}
 
-	slist := singleton.ServerShared.GetList()
-	s, ok := slist[id]
+	s, ok := singleton.ServerShared.GetServer(id)
 	if !ok || s.TaskStream == nil {
 		return "", nil
 	}

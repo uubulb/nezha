@@ -24,7 +24,8 @@ var (
 	FrontendTemplates []model.FrontendTemplate
 	DashboardBootTime = uint64(time.Now().Unix())
 
-	ServerShared *ServerClass
+	ServerShared          *ServerClass
+	ServiceSentinelShared *ServiceSentinel
 )
 
 //go:embed frontend-templates.yaml

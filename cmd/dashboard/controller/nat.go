@@ -52,7 +52,7 @@ func createNAT(c *gin.Context) (uint64, error) {
 		return 0, err
 	}
 
-	if server, ok := singleton.ServerShared.GetList()[nf.ServerID]; ok {
+	if server, ok := singleton.ServerShared.GetServer(nf.ServerID); ok {
 		if !server.HasPermission(c) {
 			return 0, singleton.Localizer.ErrorT("permission denied")
 		}
