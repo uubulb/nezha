@@ -54,12 +54,14 @@ func (c *ServerClass) Update(s *model.Server, uuid string) {
 
 func (c *ServerClass) Delete(idList []uint64) {
 	c.listMu.Lock()
-	defer c.listMu.Unlock()
+
 	for _, id := range idList {
 		serverUUID := c.list[id].UUID
 		delete(c.uuidToID, serverUUID)
 		delete(c.list, id)
 	}
+
+	c.listMu.Unlock()
 
 	c.sortList()
 }
