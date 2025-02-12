@@ -32,7 +32,7 @@ func createFM(c *gin.Context) (*model.CreateFMResponse, error) {
 		return nil, err
 	}
 
-	server, _ := singleton.ServerShared.GetServer(id)
+	server, _ := singleton.ServerShared.Get(id)
 	if server == nil || server.TaskStream == nil {
 		return nil, singleton.Localizer.ErrorT("server not found or not connected")
 	}

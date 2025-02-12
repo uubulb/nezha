@@ -3,6 +3,9 @@ package singleton
 import (
 	_ "embed"
 	"log"
+	"maps"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -26,6 +29,9 @@ var (
 
 	ServerShared          *ServerClass
 	ServiceSentinelShared *ServiceSentinel
+	DDNSShared            *DDNSClass
+	NotificationShared    *NotificationClass
+	NATShared             *NATClass
 )
 
 //go:embed frontend-templates.yaml
@@ -43,13 +49,13 @@ func InitTimezoneAndCache() {
 
 // LoadSingleton 加载子服务并执行
 func LoadSingleton() {
-	initUser()                      // 加载用户ID绑定表
-	initI18n()                      // 加载本地化服务
-	loadNotifications()             // 加载通知服务
-	ServerShared = NewServerClass() // 加载服务器列表
-	loadCronTasks()                 // 加载定时任务
-	initNAT()
-	initDDNS()
+	initUser()                                  // 加载用户ID绑定表
+	initI18n()                                  // 加载本地化服务
+	NotificationShared = NewNotificationClass() // 加载通知服务
+	ServerShared = NewServerClass()             // 加载服务器列表
+	loadCronTasks()                             // 加载定时任务
+	NATShared = NewNATClass()
+	DDNSShared = NewDDNSClass()
 }
 
 // InitFrontendTemplates 从内置文件中加载FrontendTemplates
@@ -174,4 +180,26 @@ func IPDesensitize(ip string) string {
 		return ip
 	}
 	return utils.IPDesensitize(ip)
+}
+
+type class[K comparable, V model.CommonInterface] struct {
+	list   map[K]V
+	listMu sync.RWMutex
+
+	sortedList   []V
+	sortedListMu sync.RWMutex
+}
+
+func (c *class[K, V]) GetList() map[K]V {
+	c.listMu.RLock()
+	defer c.listMu.RUnlock()
+
+	return maps.Clone(c.list)
+}
+
+func (c *class[K, V]) GetSortedList() []V {
+	c.sortedListMu.RLock()
+	defer c.sortedListMu.RUnlock()
+
+	return slices.Clone(c.sortedList)
 }

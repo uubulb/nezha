@@ -58,16 +58,14 @@ func updateServer(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	singleton.DDNSCacheLock.RLock()
+	m := singleton.DDNSShared.GetList()
 	for _, pid := range sf.DDNSProfiles {
-		if p, ok := singleton.DDNSCache[pid]; ok {
+		if p, ok := m[pid]; ok {
 			if !p.HasPermission(c) {
-				singleton.DDNSCacheLock.RUnlock()
 				return nil, singleton.Localizer.ErrorT("permission denied")
 			}
 		}
 	}
-	singleton.DDNSCacheLock.RUnlock()
 
 	var s model.Server
 	if err := singleton.DB.First(&s, id).Error; err != nil {
@@ -223,7 +221,7 @@ func getServerConfig(c *gin.Context) (string, error) {
 		return "", err
 	}
 
-	s, ok := singleton.ServerShared.GetServer(id)
+	s, ok := singleton.ServerShared.Get(id)
 	if !ok || s.TaskStream == nil {
 		return "", nil
 	}

@@ -21,11 +21,10 @@ import (
 // @Success 200 {object} model.CommonResponse[[]model.Notification]
 // @Router /notification [get]
 func listNotification(c *gin.Context) ([]*model.Notification, error) {
-	singleton.NotificationSortedLock.RLock()
-	defer singleton.NotificationSortedLock.RUnlock()
+	slist := singleton.NotificationShared.GetSortedList()
 
 	var notifications []*model.Notification
-	if err := copier.Copy(&notifications, &singleton.NotificationListSorted); err != nil {
+	if err := copier.Copy(&notifications, &slist); err != nil {
 		return nil, err
 	}
 	return notifications, nil
@@ -75,8 +74,7 @@ func createNotification(c *gin.Context) (uint64, error) {
 		return 0, newGormError("%v", err)
 	}
 
-	singleton.OnRefreshOrAddNotification(&n)
-	singleton.UpdateNotificationList()
+	singleton.NotificationShared.Update(&n)
 	return n.ID, nil
 }
 
@@ -137,8 +135,7 @@ func updateNotification(c *gin.Context) (any, error) {
 		return nil, newGormError("%v", err)
 	}
 
-	singleton.OnRefreshOrAddNotification(&n)
-	singleton.UpdateNotificationList()
+	singleton.NotificationShared.Update(&n)
 	return nil, nil
 }
 
@@ -159,15 +156,14 @@ func batchDeleteNotification(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	singleton.NotificationsLock.RLock()
+	m := singleton.NotificationShared.GetList()
 	for _, nid := range n {
-		if ns, ok := singleton.NotificationMap[nid]; ok {
+		if ns, ok := m[nid]; ok {
 			if !ns.HasPermission(c) {
 				return nil, singleton.Localizer.ErrorT("permission denied")
 			}
 		}
 	}
-	singleton.NotificationsLock.RUnlock()
 
 	err := singleton.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(&model.Notification{}, "id in (?)", n).Error; err != nil {
@@ -183,7 +179,6 @@ func batchDeleteNotification(c *gin.Context) (any, error) {
 		return nil, newGormError("%v", err)
 	}
 
-	singleton.OnDeleteNotification(n)
-	singleton.UpdateNotificationList()
+	singleton.NotificationShared.Delete(n)
 	return nil, nil
 }

@@ -224,7 +224,7 @@ func createService(c *gin.Context) (uint64, error) {
 		return 0, err
 	}
 
-	if err := singleton.ServiceSentinelShared.OnServiceUpdate(m); err != nil {
+	if err := singleton.ServiceSentinelShared.Update(&m); err != nil {
 		return 0, err
 	}
 
@@ -301,7 +301,7 @@ func updateService(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	if err := singleton.ServiceSentinelShared.OnServiceUpdate(m); err != nil {
+	if err := singleton.ServiceSentinelShared.Update(&m); err != nil {
 		return nil, err
 	}
 
@@ -344,7 +344,7 @@ func batchDeleteService(c *gin.Context) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	singleton.ServiceSentinelShared.OnServiceDelete(ids)
+	singleton.ServiceSentinelShared.Delete(ids)
 	singleton.ServiceSentinelShared.UpdateServiceList()
 	return nil, nil
 }

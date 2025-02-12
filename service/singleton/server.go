@@ -2,27 +2,25 @@ package singleton
 
 import (
 	"cmp"
-	"maps"
 	"slices"
-	"sync"
 
 	"github.com/nezhahq/nezha/model"
 	"github.com/nezhahq/nezha/pkg/utils"
 )
 
 type ServerClass struct {
-	list     map[uint64]*model.Server
-	uuidToID map[string]uint64
-	listMu   sync.RWMutex
+	class[uint64, *model.Server]
 
-	sortedList         []*model.Server
+	uuidToID map[string]uint64
+
 	sortedListForGuest []*model.Server
-	sortedListMu       sync.RWMutex
 }
 
 func NewServerClass() *ServerClass {
 	sc := &ServerClass{
-		list:     make(map[uint64]*model.Server),
+		class: class[uint64, *model.Server]{
+			list: make(map[uint64]*model.Server),
+		},
 		uuidToID: make(map[string]uint64),
 	}
 
@@ -66,26 +64,12 @@ func (c *ServerClass) Delete(idList []uint64) {
 	c.sortList()
 }
 
-func (c *ServerClass) GetServer(id uint64) (s *model.Server, ok bool) {
+func (c *ServerClass) Get(id uint64) (s *model.Server, ok bool) {
 	c.listMu.RLock()
 	defer c.listMu.RUnlock()
 
 	s, ok = c.list[id]
 	return
-}
-
-func (c *ServerClass) GetList() map[uint64]*model.Server {
-	c.listMu.RLock()
-	defer c.listMu.RUnlock()
-
-	return maps.Clone(c.list)
-}
-
-func (c *ServerClass) GetSortedList() []*model.Server {
-	c.sortedListMu.RLock()
-	defer c.sortedListMu.RUnlock()
-
-	return slices.Clone(c.sortedList)
 }
 
 func (c *ServerClass) GetSortedListForGuest() []*model.Server {

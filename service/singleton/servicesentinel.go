@@ -40,7 +40,7 @@ type _TodayStatsOfService struct {
 }
 
 // NewServiceSentinel 创建服务监控器
-func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) (*ServiceSentinel, error) {
+func NewServiceSentinel(serviceSentinelDispatchBus chan<- *model.Service, sc *ServerClass, nc *NotificationClass) (*ServiceSentinel, error) {
 	ss := &ServiceSentinel{
 		serviceReportChannel:                    make(chan ReportData, 200),
 		serviceStatusToday:                      make(map[uint64]*_TodayStatsOfService),
@@ -56,6 +56,9 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Service) (*Servi
 		// 30天数据缓存
 		monthlyStatus: make(map[uint64]*serviceResponseItem),
 		dispatchBus:   serviceSentinelDispatchBus,
+
+		serverc:       sc,
+		notificationc: nc,
 	}
 	// 加载历史记录
 	ss.loadServiceHistory()
@@ -102,7 +105,7 @@ type ServiceSentinel struct {
 	// 服务监控任务上报通道
 	serviceReportChannel chan ReportData // 服务状态汇报管道
 	// 服务监控任务调度通道
-	dispatchBus chan<- model.Service
+	dispatchBus chan<- *model.Service
 
 	serviceResponseDataStoreLock            sync.RWMutex
 	serviceStatusToday                      map[uint64]*_TodayStatsOfService // [service_id] -> _TodayStatsOfService
@@ -123,6 +126,10 @@ type ServiceSentinel struct {
 	// 30天数据缓存
 	monthlyStatusLock sync.Mutex
 	monthlyStatus     map[uint64]*serviceResponseItem
+
+	// references
+	serverc       *ServerClass
+	notificationc *NotificationClass
 }
 
 type indexStore struct {
@@ -192,7 +199,7 @@ func (ss *ServiceSentinel) loadServiceHistory() {
 	}
 
 	for i := 0; i < len(services); i++ {
-		task := *services[i]
+		task := services[i]
 		// 通过cron定时将服务监控任务传递给任务调度管道
 		services[i].CronJobID, err = Cron.AddFunc(task.CronSpec(), func() {
 			ss.dispatchBus <- task
@@ -238,7 +245,7 @@ func (ss *ServiceSentinel) loadServiceHistory() {
 	}
 }
 
-func (ss *ServiceSentinel) OnServiceUpdate(m model.Service) error {
+func (ss *ServiceSentinel) Update(m *model.Service) error {
 	ss.serviceResponseDataStoreLock.Lock()
 	defer ss.serviceResponseDataStoreLock.Unlock()
 	ss.monthlyStatusLock.Lock()
@@ -260,7 +267,7 @@ func (ss *ServiceSentinel) OnServiceUpdate(m model.Service) error {
 	} else {
 		// 新任务初始化数据
 		ss.monthlyStatus[m.ID] = &serviceResponseItem{
-			service: &m,
+			service: m,
 			ServiceResponseItem: model.ServiceResponseItem{
 				Delay: &[30]float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 				Up:    &[30]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -271,11 +278,11 @@ func (ss *ServiceSentinel) OnServiceUpdate(m model.Service) error {
 		ss.serviceStatusToday[m.ID] = &_TodayStatsOfService{}
 	}
 	// 更新这个任务
-	ss.services[m.ID] = &m
+	ss.services[m.ID] = m
 	return nil
 }
 
-func (ss *ServiceSentinel) OnServiceDelete(ids []uint64) {
+func (ss *ServiceSentinel) Delete(ids []uint64) {
 	ss.serviceResponseDataStoreLock.Lock()
 	defer ss.serviceResponseDataStoreLock.Unlock()
 	ss.monthlyStatusLock.Lock()
@@ -354,6 +361,14 @@ func (ss *ServiceSentinel) CopyStats() map[uint64]model.ServiceResponseItem {
 	}
 
 	return sri
+}
+
+func (ss *ServiceSentinel) Get(id uint64) (s *model.Service, ok bool) {
+	ss.servicesLock.RLock()
+	defer ss.servicesLock.RUnlock()
+
+	s, ok = ss.services[id]
+	return
 }
 
 func (ss *ServiceSentinel) GetList() map[uint64]*model.Service {
@@ -472,11 +487,11 @@ func (ss *ServiceSentinel) worker() {
 			}
 		}
 
-		cs := ss.GetList()[mh.GetId()]
-		m := ServerShared.GetList()
+		cs, _ := ss.Get(mh.GetId())
+		m := ss.serverc.GetList()
 		// 延迟报警
 		if mh.Delay > 0 {
-			delayCheck(&r, m, cs, mh)
+			delayCheck(&r, ss.notificationc, m, cs, mh)
 		}
 
 		// 状态变更报警+触发任务执行
@@ -485,7 +500,7 @@ func (ss *ServiceSentinel) worker() {
 			// 存储新的状态值
 			ss.lastStatus[mh.GetId()] = stateCode
 
-			notifyCheck(&r, m, cs, mh, lastStatus, stateCode)
+			notifyCheck(&r, ss.notificationc, m, cs, mh, lastStatus, stateCode)
 		}
 		ss.serviceResponseDataStoreLock.Unlock()
 
@@ -499,12 +514,12 @@ func (ss *ServiceSentinel) worker() {
 				errMsg = mh.Data
 				if cs.Notify {
 					muteLabel := NotificationMuteLabel.ServiceTLS(mh.GetId(), "network")
-					go SendNotification(cs.NotificationGroupID, Localizer.Tf("[TLS] Fetch cert info failed, Reporter: %s, Error: %s", cs.Name, errMsg), muteLabel)
+					go ss.notificationc.SendNotification(cs.NotificationGroupID, Localizer.Tf("[TLS] Fetch cert info failed, Reporter: %s, Error: %s", cs.Name, errMsg), muteLabel)
 				}
 			}
 		} else {
 			// 清除网络错误静音缓存
-			UnMuteNotification(cs.NotificationGroupID, NotificationMuteLabel.ServiceTLS(mh.GetId(), "network"))
+			ss.notificationc.UnMuteNotification(cs.NotificationGroupID, NotificationMuteLabel.ServiceTLS(mh.GetId(), "network"))
 
 			var newCert = strings.Split(mh.Data, "|")
 			if len(newCert) > 1 {
@@ -542,7 +557,7 @@ func (ss *ServiceSentinel) worker() {
 						// 静音规则： 服务id+证书过期时间
 						// 用于避免多个监测点对相同证书同时报警
 						muteLabel := NotificationMuteLabel.ServiceTLS(mh.GetId(), fmt.Sprintf("expire_%s", expiresTimeStr))
-						go SendNotification(notificationGroupID, fmt.Sprintf("[TLS] %s %s", serviceName, errMsg), muteLabel)
+						go ss.notificationc.SendNotification(notificationGroupID, fmt.Sprintf("[TLS] %s %s", serviceName, errMsg), muteLabel)
 					}
 
 					// 证书变更提醒
@@ -552,7 +567,7 @@ func (ss *ServiceSentinel) worker() {
 							oldCert[0], expiresOld.Format("2006-01-02 15:04:05"), newCert[0], expiresNew.Format("2006-01-02 15:04:05"))
 
 						// 证书变更后会自动更新缓存，所以不需要静音
-						go SendNotification(notificationGroupID, fmt.Sprintf("[TLS] %s %s", serviceName, errMsg), nil)
+						go ss.notificationc.SendNotification(notificationGroupID, fmt.Sprintf("[TLS] %s %s", serviceName, errMsg), nil)
 					}
 				}
 			}
@@ -560,7 +575,7 @@ func (ss *ServiceSentinel) worker() {
 	}
 }
 
-func delayCheck(r *ReportData, m map[uint64]*model.Server, ss *model.Service, mh *pb.TaskResult) {
+func delayCheck(r *ReportData, nc *NotificationClass, m map[uint64]*model.Server, ss *model.Service, mh *pb.TaskResult) {
 	if !ss.LatencyNotify {
 		return
 	}
@@ -572,20 +587,20 @@ func delayCheck(r *ReportData, m map[uint64]*model.Server, ss *model.Service, mh
 		// 延迟超过最大值
 		reporterServer := m[r.Reporter]
 		msg := Localizer.Tf("[Latency] %s %2f > %2f, Reporter: %s", ss.Name, mh.Delay, ss.MaxLatency, reporterServer.Name)
-		go SendNotification(notificationGroupID, msg, minMuteLabel)
+		go nc.SendNotification(notificationGroupID, msg, minMuteLabel)
 	} else if mh.Delay < ss.MinLatency {
 		// 延迟低于最小值
 		reporterServer := m[r.Reporter]
 		msg := Localizer.Tf("[Latency] %s %2f < %2f, Reporter: %s", ss.Name, mh.Delay, ss.MinLatency, reporterServer.Name)
-		go SendNotification(notificationGroupID, msg, maxMuteLabel)
+		go nc.SendNotification(notificationGroupID, msg, maxMuteLabel)
 	} else {
 		// 正常延迟， 清除静音缓存
-		UnMuteNotification(notificationGroupID, minMuteLabel)
-		UnMuteNotification(notificationGroupID, maxMuteLabel)
+		nc.UnMuteNotification(notificationGroupID, minMuteLabel)
+		nc.UnMuteNotification(notificationGroupID, maxMuteLabel)
 	}
 }
 
-func notifyCheck(r *ReportData, m map[uint64]*model.Server, ss *model.Service,
+func notifyCheck(r *ReportData, nc *NotificationClass, m map[uint64]*model.Server, ss *model.Service,
 	mh *pb.TaskResult, lastStatus, stateCode uint8) {
 	// 判断是否需要发送通知
 	isNeedSendNotification := ss.Notify && (lastStatus != 0 || stateCode == StatusDown)
@@ -597,10 +612,10 @@ func notifyCheck(r *ReportData, m map[uint64]*model.Server, ss *model.Service,
 
 		// 状态变更时，清除静音缓存
 		if stateCode != lastStatus {
-			UnMuteNotification(notificationGroupID, muteLabel)
+			nc.UnMuteNotification(notificationGroupID, muteLabel)
 		}
 
-		go SendNotification(notificationGroupID, notificationMsg, muteLabel)
+		go nc.SendNotification(notificationGroupID, notificationMsg, muteLabel)
 	}
 
 	// 判断是否需要触发任务

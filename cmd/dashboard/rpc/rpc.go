@@ -74,10 +74,14 @@ func getRealIp(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 	return handler(ctx, req)
 }
 
-func DispatchTask(serviceSentinelDispatchBus <-chan model.Service) {
+func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 	workedServerIndex := 0
 	list := singleton.ServerShared.GetSortedListForGuest()
 	for task := range serviceSentinelDispatchBus {
+		if task == nil {
+			continue
+		}
+
 		round := 0
 		endIndex := workedServerIndex
 		// 如果已经轮了一整圈又轮到自己，没有合适机器去请求，跳出循环
