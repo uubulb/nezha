@@ -101,7 +101,8 @@ func updateServer(c *gin.Context) (any, error) {
 		return nil, newGormError("%v", err)
 	}
 
-	s.CopyFromRunningServer(singleton.ServerShared.GetList()[s.ID])
+	rs, _ := singleton.ServerShared.Get(s.ID)
+	s.CopyFromRunningServer(rs)
 	singleton.ServerShared.Update(&s, "")
 
 	return nil, nil

@@ -152,7 +152,7 @@ func DispatchKeepalive() {
 }
 
 func ServeNAT(w http.ResponseWriter, r *http.Request, natConfig *model.NAT) {
-	server := singleton.ServerShared.GetList()[natConfig.ServerID]
+	server, _ := singleton.ServerShared.Get(natConfig.ServerID)
 	if server == nil || server.TaskStream == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Write([]byte("server not found or not connected"))
