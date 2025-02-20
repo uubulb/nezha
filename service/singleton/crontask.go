@@ -157,12 +157,12 @@ func CronTrigger(cr *model.Cron, triggerServer ...uint64) func() {
 			return
 		}
 
-		ServerShared.ForEach(func(_ uint64, s *model.Server) bool {
+		for _, s := range ServerShared.Range {
 			if cr.Cover == model.CronCoverAll && crIgnoreMap[s.ID] {
-				return true
+				continue
 			}
 			if cr.Cover == model.CronCoverIgnoreAll && !crIgnoreMap[s.ID] {
-				return true
+				continue
 			}
 			if s.TaskStream != nil {
 				s.TaskStream.Send(&pb.Task{
@@ -176,7 +176,6 @@ func CronTrigger(cr *model.Cron, triggerServer ...uint64) func() {
 				copier.Copy(&curServer, s)
 				NotificationShared.SendNotification(cr.NotificationGroupID, Localizer.Tf("[Task failed] %s: server %s is offline and cannot execute the task", cr.Name, s.Name), nil, &curServer)
 			}
-			return true
-		})
+		}
 	}
 }

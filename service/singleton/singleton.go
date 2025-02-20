@@ -215,7 +215,7 @@ func (c *class[K, V]) GetSortedList() []V {
 	return slices.Clone(c.sortedList)
 }
 
-func (c *class[K, V]) ForEach(fn func(k K, v V) bool) {
+func (c *class[K, V]) Range(fn func(k K, v V) bool) {
 	c.listMu.RLock()
 	defer c.listMu.RUnlock()
 
