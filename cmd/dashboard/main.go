@@ -63,12 +63,12 @@ func initSystem() {
 	singleton.LoadSingleton()
 
 	// 每天的3:30 对 监控记录 和 流量记录 进行清理
-	if _, err := singleton.Cron.AddFunc("0 30 3 * * *", singleton.CleanServiceHistory); err != nil {
+	if _, err := singleton.CronShared.AddFunc("0 30 3 * * *", singleton.CleanServiceHistory); err != nil {
 		panic(err)
 	}
 
 	// 每小时对流量记录进行打点
-	if _, err := singleton.Cron.AddFunc("0 0 * * * *", singleton.RecordTransferHourlyUsage); err != nil {
+	if _, err := singleton.CronShared.AddFunc("0 0 * * * *", singleton.RecordTransferHourlyUsage); err != nil {
 		panic(err)
 	}
 }
@@ -123,7 +123,7 @@ func main() {
 	go rpc.DispatchTask(serviceSentinelDispatchBus)
 	go singleton.AlertSentinelStart()
 	singleton.ServiceSentinelShared, err = singleton.NewServiceSentinel(
-		serviceSentinelDispatchBus, singleton.ServerShared, singleton.NotificationShared)
+		serviceSentinelDispatchBus, singleton.ServerShared, singleton.NotificationShared, singleton.CronShared)
 	if err != nil {
 		log.Fatal(err)
 	}

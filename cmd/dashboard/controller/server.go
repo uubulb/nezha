@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -58,13 +59,8 @@ func updateServer(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	m := singleton.DDNSShared.GetList()
-	for _, pid := range sf.DDNSProfiles {
-		if p, ok := m[pid]; ok {
-			if !p.HasPermission(c) {
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.DDNSShared.CheckPermission(c, slices.Values(sf.DDNSProfiles)) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	var s model.Server
@@ -125,13 +121,8 @@ func batchDeleteServer(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	slist := singleton.ServerShared.GetList()
-	for _, sid := range servers {
-		if s, ok := slist[sid]; ok {
-			if !s.HasPermission(c) {
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.ServerShared.CheckPermission(c, slices.Values(servers)) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	err := singleton.DB.Transaction(func(tx *gorm.DB) error {
@@ -184,9 +175,8 @@ func forceUpdateServer(c *gin.Context) (*model.ServerTaskResponse, error) {
 
 	forceUpdateResp := new(model.ServerTaskResponse)
 
-	slist := singleton.ServerShared.GetList()
 	for _, sid := range forceUpdateServers {
-		server := slist[sid]
+		server, _ := singleton.ServerShared.Get(sid)
 		if server != nil && server.TaskStream != nil {
 			if !server.HasPermission(c) {
 				return nil, singleton.Localizer.ErrorT("permission denied")

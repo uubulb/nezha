@@ -65,13 +65,11 @@ func OnUserDelete(id []uint64, errorFunc func(string, ...interface{}) error) err
 		crons, servers []uint64
 	)
 
-	list := ServerShared.GetSortedList()
+	slist := ServerShared.GetSortedList()
+	clist := CronShared.GetSortedList()
 	for _, uid := range id {
 		err := DB.Transaction(func(tx *gorm.DB) error {
-			CronLock.RLock()
-			crons = model.FindByUserID(CronList, uid)
-			CronLock.RUnlock()
-
+			crons = model.FindByUserID(clist, uid)
 			cron = len(crons) > 0
 			if cron {
 				if err := tx.Unscoped().Delete(&model.Cron{}, "id in (?)", crons).Error; err != nil {
@@ -79,7 +77,7 @@ func OnUserDelete(id []uint64, errorFunc func(string, ...interface{}) error) err
 				}
 			}
 
-			servers = model.FindByUserID(list, uid)
+			servers = model.FindByUserID(slist, uid)
 			server = len(servers) > 0
 			if server {
 				if err := tx.Unscoped().Delete(&model.Server{}, "id in (?)", servers).Error; err != nil {
@@ -105,7 +103,7 @@ func OnUserDelete(id []uint64, errorFunc func(string, ...interface{}) error) err
 		}
 
 		if cron {
-			OnDeleteCron(crons)
+			CronShared.Delete(crons)
 		}
 
 		if server {
@@ -126,10 +124,6 @@ func OnUserDelete(id []uint64, errorFunc func(string, ...interface{}) error) err
 		secret := UserInfoMap[uid].AgentSecret
 		delete(AgentSecretToUserId, secret)
 		delete(UserInfoMap, uid)
-	}
-
-	if cron {
-		UpdateCronList()
 	}
 	return nil
 }

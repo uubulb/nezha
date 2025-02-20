@@ -2,12 +2,14 @@ package singleton
 
 import (
 	_ "embed"
+	"iter"
 	"log"
 	"maps"
 	"slices"
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/sqlite"
@@ -32,6 +34,7 @@ var (
 	DDNSShared            *DDNSClass
 	NotificationShared    *NotificationClass
 	NATShared             *NATClass
+	CronShared            *CronClass
 )
 
 //go:embed frontend-templates.yaml
@@ -53,7 +56,7 @@ func LoadSingleton() {
 	initI18n()                                  // 加载本地化服务
 	NotificationShared = NewNotificationClass() // 加载通知服务
 	ServerShared = NewServerClass()             // 加载服务器列表
-	loadCronTasks()                             // 加载定时任务
+	CronShared = NewCronClass()                 // 加载定时任务
 	NATShared = NewNATClass()
 	DDNSShared = NewDDNSClass()
 }
@@ -190,6 +193,14 @@ type class[K comparable, V model.CommonInterface] struct {
 	sortedListMu sync.RWMutex
 }
 
+func (c *class[K, V]) Get(id K) (s V, ok bool) {
+	c.listMu.RLock()
+	defer c.listMu.RUnlock()
+
+	s, ok = c.list[id]
+	return
+}
+
 func (c *class[K, V]) GetList() map[K]V {
 	c.listMu.RLock()
 	defer c.listMu.RUnlock()
@@ -202,4 +213,29 @@ func (c *class[K, V]) GetSortedList() []V {
 	defer c.sortedListMu.RUnlock()
 
 	return slices.Clone(c.sortedList)
+}
+
+func (c *class[K, V]) ForEach(fn func(k K, v V) bool) {
+	c.listMu.RLock()
+	defer c.listMu.RUnlock()
+
+	for k, v := range c.list {
+		if !fn(k, v) {
+			break
+		}
+	}
+}
+
+func (c *class[K, V]) CheckPermission(ctx *gin.Context, idList iter.Seq[K]) bool {
+	c.listMu.RLock()
+	defer c.listMu.RUnlock()
+
+	for id := range idList {
+		if s, ok := c.list[id]; ok {
+			if !s.HasPermission(ctx) {
+				return false
+			}
+		}
+	}
+	return true
 }

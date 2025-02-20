@@ -64,14 +64,6 @@ func (c *ServerClass) Delete(idList []uint64) {
 	c.sortList()
 }
 
-func (c *ServerClass) Get(id uint64) (s *model.Server, ok bool) {
-	c.listMu.RLock()
-	defer c.listMu.RUnlock()
-
-	s, ok = c.list[id]
-	return
-}
-
 func (c *ServerClass) GetSortedListForGuest() []*model.Server {
 	c.sortedListMu.RLock()
 	defer c.sortedListMu.RUnlock()

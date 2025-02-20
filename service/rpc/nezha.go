@@ -56,9 +56,7 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 		switch result.GetType() {
 		case model.TaskTypeCommand:
 			// 处理上报的计划任务
-			singleton.CronLock.RLock()
-			cr := singleton.Crons[result.GetId()]
-			singleton.CronLock.RUnlock()
+			cr, _ := singleton.CronShared.Get(result.GetId())
 			if cr != nil {
 				// 保存当前服务器状态信息
 				var curServer model.Server
@@ -232,7 +230,7 @@ func (s *NezhaHandler) ReportGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 		ipv4 := geoip.IP.IPv4Addr
 		ipv6 := geoip.IP.IPv6Addr
 
-		providers, err := singleton.DDNSShared.GetDDNSProvidersFromProfiles(server.DDNSProfiles, &ddns.IP{Ipv4Addr: ipv4, Ipv6Addr: ipv6})
+		providers, err := singleton.DDNSShared.GetDDNSProvidersFromProfiles(server.DDNSProfiles, &model.IP{IPv4Addr: ipv4, IPv6Addr: ipv6})
 		if err == nil {
 			for _, provider := range providers {
 				domains := server.OverrideDDNSDomains[provider.GetProfileID()]

@@ -57,7 +57,7 @@ func (c *DDNSClass) Delete(idList []uint64) {
 	c.sortList()
 }
 
-func (c *DDNSClass) GetDDNSProvidersFromProfiles(profileId []uint64, ip *ddns2.IP) ([]*ddns2.Provider, error) {
+func (c *DDNSClass) GetDDNSProvidersFromProfiles(profileId []uint64, ip *model.IP) ([]*ddns2.Provider, error) {
 	profiles := make([]*model.DDNSProfile, 0, len(profileId))
 
 	c.listMu.RLock()

@@ -1,8 +1,6 @@
 module github.com/nezhahq/nezha
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.23.6
 
 require (
 	github.com/appleboy/gin-jwt/v2 v2.10.0

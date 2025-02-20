@@ -68,13 +68,8 @@ func createNotificationGroup(c *gin.Context) (uint64, error) {
 	}
 	ngf.Notifications = slices.Compact(ngf.Notifications)
 
-	m := singleton.NotificationShared.GetList()
-	for _, nid := range ngf.Notifications {
-		if n, ok := m[nid]; ok {
-			if !n.HasPermission(c) {
-				return 0, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.NotificationShared.CheckPermission(c, slices.Values(ngf.Notifications)) {
+		return 0, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	uid := getUid(c)
@@ -142,13 +137,8 @@ func updateNotificationGroup(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	m := singleton.NotificationShared.GetList()
-	for _, nid := range ngf.Notifications {
-		if n, ok := m[nid]; ok {
-			if !n.HasPermission(c) {
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.NotificationShared.CheckPermission(c, slices.Values(ngf.Notifications)) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	var ngDB model.NotificationGroup

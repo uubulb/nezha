@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -179,13 +180,8 @@ func batchDeleteDDNS(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	m := singleton.DDNSShared.GetList()
-	for _, pid := range ddnsConfigs {
-		if p, ok := m[pid]; ok {
-			if !p.HasPermission(c) {
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.DDNSShared.CheckPermission(c, slices.Values(ddnsConfigs)) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	if err := singleton.DB.Unscoped().Delete(&model.DDNSProfile{}, "id in (?)", ddnsConfigs).Error; err != nil {

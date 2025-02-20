@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"maps"
 	"strconv"
 	"time"
 
@@ -167,14 +168,9 @@ func batchDeleteAlertRule(c *gin.Context) (any, error) {
 
 func validateRule(c *gin.Context, r *model.AlertRule) error {
 	if len(r.Rules) > 0 {
-		m := singleton.ServerShared.GetList()
 		for _, rule := range r.Rules {
-			for s := range rule.Ignore {
-				if server, ok := m[s]; ok {
-					if !server.HasPermission(c) {
-						return singleton.Localizer.ErrorT("permission denied")
-					}
-				}
+			if !singleton.ServerShared.CheckPermission(c, maps.Keys(rule.Ignore)) {
+				return singleton.Localizer.ErrorT("permission denied")
 			}
 
 			if !rule.IsTransferDurationRule() {

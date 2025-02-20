@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 
 	"github.com/nezhahq/nezha/model"
+	"github.com/nezhahq/nezha/pkg/utils"
 	"github.com/nezhahq/nezha/service/singleton"
 )
 
@@ -23,7 +25,7 @@ import (
 func listNAT(c *gin.Context) ([]*model.NAT, error) {
 	var n []*model.NAT
 
-	slist := singleton.NATShared.GetList()
+	slist := singleton.NATShared.GetSortedList()
 
 	if err := copier.Copy(&n, &slist); err != nil {
 		return nil, err
@@ -145,13 +147,11 @@ func batchDeleteNAT(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	m := singleton.NATShared.GetList()
-	for _, id := range n {
-		if p, ok := m[singleton.NATShared.GetDomain(id)]; ok {
-			if !p.HasPermission(c) {
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.NATShared.CheckPermission(c, utils.ConvertSeq(slices.Values(n),
+		func(id uint64) string {
+			return singleton.NATShared.GetDomain(id)
+		})) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	if err := singleton.DB.Unscoped().Delete(&model.NAT{}, "id in (?)", n).Error; err != nil {

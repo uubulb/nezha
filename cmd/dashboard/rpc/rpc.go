@@ -76,7 +76,7 @@ func getRealIp(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 
 func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 	workedServerIndex := 0
-	list := singleton.ServerShared.GetSortedListForGuest()
+	list := singleton.ServerShared.GetSortedList()
 	for task := range serviceSentinelDispatchBus {
 		if task == nil {
 			continue
@@ -140,7 +140,7 @@ func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 }
 
 func DispatchKeepalive() {
-	singleton.Cron.AddFunc("@every 20s", func() {
+	singleton.CronShared.AddFunc("@every 20s", func() {
 		list := singleton.ServerShared.GetSortedList()
 		for _, s := range list {
 			if s == nil || s.TaskStream == nil {

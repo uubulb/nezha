@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -157,14 +158,8 @@ func batchDeleteNotification(c *gin.Context) (any, error) {
 		return nil, err
 	}
 
-	m := singleton.NotificationShared.GetList()
-	for _, nid := range n {
-		if ns, ok := m[nid]; ok {
-			if !ns.HasPermission(c) {
-				singleton.NotificationsLock.RUnlock()
-				return nil, singleton.Localizer.ErrorT("permission denied")
-			}
-		}
+	if !singleton.NotificationShared.CheckPermission(c, slices.Values(n)) {
+		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
 	err := singleton.DB.Transaction(func(tx *gorm.DB) error {
