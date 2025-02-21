@@ -20,7 +20,7 @@ import (
 var (
 	Json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	DNSServers = []string{"1.1.1.1:53", "223.5.5.5:53"}
+	DNSServers = []string{"8.8.8.8:53", "8.8.4.4:53", "1.1.1.1:53", "1.0.0.1:53"}
 )
 
 var ipv4Re = regexp.MustCompile(`(\d*\.).*(\.\d*)`)
