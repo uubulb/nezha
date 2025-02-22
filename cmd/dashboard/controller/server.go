@@ -281,10 +281,7 @@ func setServerConfig(c *gin.Context) (*model.ServerTaskResponse, error) {
 	var respMu sync.Mutex
 
 	for i := 0; i < len(servers); i += 10 {
-		end := i + 10
-		if end > len(servers) {
-			end = len(servers)
-		}
+		end := min(i+10, len(servers))
 		group := servers[i:end]
 
 		wg.Add(1)
