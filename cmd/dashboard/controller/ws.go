@@ -158,7 +158,7 @@ func serverStream(c *gin.Context) (any, error) {
 var requestGroup singleflight.Group
 
 func getServerStat(withPublicNote, authorized bool) ([]byte, error) {
-	v, err, _ := requestGroup.Do(fmt.Sprintf("serverStats::%t", authorized), func() (interface{}, error) {
+	v, err, _ := requestGroup.Do(fmt.Sprintf("serverStats::%t", authorized), func() (any, error) {
 		var serverList []*model.Server
 		if authorized {
 			serverList = singleton.ServerShared.GetSortedList()

@@ -165,9 +165,8 @@ func (c *Config) Read(path string, frontendTemplates []FrontendTemplate) error {
 // updateIgnoredIPNotificationID 更新用于判断服务器ID是否属于特定服务器的map
 func (c *Config) updateIgnoredIPNotificationID() {
 	c.IgnoredIPNotificationServerIDs = make(map[uint64]bool)
-	splitedIDs := strings.Split(c.IgnoredIPNotification, ",")
-	for i := 0; i < len(splitedIDs); i++ {
-		id, _ := strconv.ParseUint(splitedIDs[i], 10, 64)
+	for splitedID := range strings.SplitSeq(c.IgnoredIPNotification, ",") {
+		id, _ := strconv.ParseUint(splitedID, 10, 64)
 		if id > 0 {
 			c.IgnoredIPNotificationServerIDs[id] = true
 		}
