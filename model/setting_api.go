@@ -18,6 +18,11 @@ type SettingForm struct {
 	EnablePlainIPInNotification bool `json:"enable_plain_ip_in_notification,omitempty" validate:"optional"`
 }
 
+type Setting struct {
+	ConfigForGuests
+	ConfigDashboard
+}
+
 type FrontendTemplate struct {
 	Path       string `json:"path,omitempty"`
 	Name       string `json:"name,omitempty"`
@@ -28,8 +33,8 @@ type FrontendTemplate struct {
 	IsOfficial bool   `json:"is_official,omitempty"`
 }
 
-type SettingResponse[T any] struct {
-	Config T `json:"config,omitempty"`
+type SettingResponse struct {
+	Config Setting `json:"config"`
 
 	Version           string             `json:"version,omitempty"`
 	FrontendTemplates []FrontendTemplate `json:"frontend_templates,omitempty"`

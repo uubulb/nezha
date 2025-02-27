@@ -10,7 +10,6 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-	"sigs.k8s.io/yaml"
 
 	"github.com/nezhahq/nezha/pkg/utils"
 )
@@ -22,32 +21,23 @@ const (
 )
 
 type ConfigForGuests struct {
-	Language            string   `json:"language"`
-	SiteName            string   `json:"site_name"`
-	CustomCode          string   `json:"custom_code,omitempty"`
-	CustomCodeDashboard string   `json:"custom_code_dashboard,omitempty"`
-	Oauth2Providers     []string `json:"oauth2_providers,omitempty"`
+	Language            string   `koanf:"language" json:"language"` // 系统语言，默认 zh_CN
+	SiteName            string   `koanf:"site_name" json:"site_name"`
+	CustomCode          string   `koanf:"custom_code" json:"custom_code,omitempty"`
+	CustomCodeDashboard string   `koanf:"custom_code_dashboard" json:"custom_code_dashboard,omitempty"`
+	Oauth2Providers     []string `koanf:"-" json:"oauth2_providers,omitempty"` // oauth2 供应商列表，无需配置，自动生成
 
-	InstallHost string `json:"install_host,omitempty"`
-	AgentTLS    bool   `json:"tls,omitempty"`
+	InstallHost string `koanf:"install_host" json:"install_host,omitempty"`
+	AgentTLS    bool   `koanf:"tls" json:"tls,omitempty"` // 用于前端判断生成的安装命令是否启用 TLS
 }
 
-type Config struct {
-	Debug        bool   `koanf:"debug" json:"debug,omitempty"`                   // debug模式开关
-	RealIPHeader string `koanf:"real_ip_header" json:"real_ip_header,omitempty"` // 真实IP
-
-	Language       string `koanf:"language" json:"language"` // 系统语言，默认 zh_CN
-	SiteName       string `koanf:"site_name" json:"site_name"`
-	UserTemplate   string `koanf:"user_template" json:"user_template,omitempty"`
-	AdminTemplate  string `koanf:"admin_template" json:"admin_template,omitempty"`
-	JWTSecretKey   string `koanf:"jwt_secret_key" json:"jwt_secret_key,omitempty"`
-	AgentSecretKey string `koanf:"agent_secret_key" json:"agent_secret_key,omitempty"`
-	ListenPort     uint   `koanf:"listen_port" json:"listen_port,omitempty"`
-	ListenHost     string `koanf:"listen_host" json:"listen_host,omitempty"`
-	InstallHost    string `koanf:"install_host" json:"install_host,omitempty"`
-	AgentTLS       bool   `koanf:"tls" json:"tls,omitempty"`               // 用于前端判断生成的安装命令是否启用 TLS
-	Location       string `koanf:"location" json:"location,omitempty"`     // 时区，默认为 Asia/Shanghai
-	ForceAuth      bool   `koanf:"force_auth" json:"force_auth,omitempty"` // 强制要求认证
+type ConfigDashboard struct {
+	Debug         bool   `koanf:"debug" json:"debug,omitempty"`                   // debug模式开关
+	RealIPHeader  string `koanf:"real_ip_header" json:"real_ip_header,omitempty"` // 真实IP
+	UserTemplate  string `koanf:"user_template" json:"user_template,omitempty"`
+	AdminTemplate string `koanf:"admin_template" json:"admin_template,omitempty"`
+	Location      string `koanf:"location" json:"location,omitempty"`     // 时区，默认为 Asia/Shanghai
+	ForceAuth     bool   `koanf:"force_auth" json:"force_auth,omitempty"` // 强制要求认证
 
 	EnablePlainIPInNotification bool `koanf:"enable_plain_ip_in_notification" json:"enable_plain_ip_in_notification,omitempty"` // 通知信息IP不打码
 
@@ -60,19 +50,27 @@ type Config struct {
 	IgnoredIPNotificationServerIDs map[uint64]bool `koanf:"ignored_ip_notification_server_ids" json:"ignored_ip_notification_server_ids,omitempty"` // [ServerID] -> bool(值为true代表当前ServerID在特定服务器列表内）
 	AvgPingCount                   int             `koanf:"avg_ping_count" json:"avg_ping_count,omitempty"`
 	DNSServers                     string          `koanf:"dns_servers" json:"dns_servers,omitempty"`
+}
 
-	CustomCode          string `koanf:"custom_code" json:"custom_code,omitempty"`
-	CustomCodeDashboard string `koanf:"custom_code_dashboard" json:"custom_code_dashboard,omitempty"`
+type Config struct {
+	ConfigForGuests
+	ConfigDashboard
+
+	JWTSecretKey   string `koanf:"jwt_secret_key" json:"jwt_secret_key,omitempty"`
+	AgentSecretKey string `koanf:"agent_secret_key" json:"agent_secret_key,omitempty"`
+	ListenPort     uint16 `koanf:"listen_port" json:"listen_port,omitempty"`
+	ListenHost     string `koanf:"listen_host" json:"listen_host,omitempty"`
 
 	// oauth2 配置
 	Oauth2 map[string]*Oauth2Config `koanf:"oauth2" json:"oauth2,omitempty"`
-	// oauth2 供应商列表，无需配置，自动生成
-	Oauth2Providers []string `koanf:"-" json:"oauth2_providers,omitempty"`
 
-	// TLS 证书配置
-	EnableTLS   bool   `koanf:"enable_tls" json:"enable_tls,omitempty"`
-	TLSCertPath string `koanf:"tls_cert_path" json:"tls_cert_path,omitempty"`
-	TLSKeyPath  string `koanf:"tls_key_path" json:"tls_key_path,omitempty"`
+	// HTTPS 配置
+	HTTPS struct {
+		ListenPort  uint16 `koanf:"listen_port" json:"listen_port,omitempty"`
+		TLSCertPath string `koanf:"tls_cert_path" json:"tls_cert_path,omitempty"`
+		TLSKeyPath  string `koanf:"tls_key_path" json:"tls_key_path,omitempty"`
+		InsecureTLS bool   `koanf:"insecure_tls" json:"insecure_tls,omitempty"`
+	} `koanf:"https" json:"https"`
 
 	k        *koanf.Koanf `json:"-"`
 	filePath string       `json:"-"`
@@ -175,9 +173,7 @@ func (c *Config) updateIgnoredIPNotificationID() {
 // Save 保存配置文件
 func (c *Config) Save() error {
 	c.updateIgnoredIPNotificationID()
-	tc := *c
-	tc.Oauth2Providers = nil
-	data, err := yaml.Marshal(&tc)
+	data, err := c.k.Marshal(new(utils.KubeYAML))
 	if err != nil {
 		return err
 	}
@@ -203,6 +199,7 @@ func koanfConf(c any) koanf.UnmarshalConf {
 				return strings.EqualFold(mapKey, fieldName) ||
 					strings.EqualFold(mapKey, strings.ReplaceAll(fieldName, "_", ""))
 			},
+			Squash: true,
 		},
 	}
 }
