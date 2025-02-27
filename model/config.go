@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
+	kyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
@@ -89,7 +90,7 @@ func (c *Config) Read(path string, frontendTemplates []FrontendTemplate) error {
 	}
 
 	if _, err := os.Stat(path); err == nil {
-		err = c.k.Load(file.Provider(path), new(utils.KubeYAML))
+		err = c.k.Load(file.Provider(path), kyaml.Parser())
 		if err != nil {
 			return err
 		}
@@ -173,7 +174,7 @@ func (c *Config) updateIgnoredIPNotificationID() {
 // Save 保存配置文件
 func (c *Config) Save() error {
 	c.updateIgnoredIPNotificationID()
-	data, err := c.k.Marshal(new(utils.KubeYAML))
+	data, err := c.k.Marshal(kyaml.Parser())
 	if err != nil {
 		return err
 	}
