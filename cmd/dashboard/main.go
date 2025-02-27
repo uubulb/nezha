@@ -135,6 +135,7 @@ func main() {
 		Handler:           muxHandler,
 		ReadHeaderTimeout: time.Second * 5,
 	}
+	muxServer.Protocols = new(http.Protocols)
 	muxServer.Protocols.SetHTTP1(true)
 	if singleton.Conf.EnableTLS {
 		muxServer.Protocols.SetHTTP2(true)

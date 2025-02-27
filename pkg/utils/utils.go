@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"cmp"
 	"crypto/rand"
 	"errors"
 	"iter"
@@ -114,16 +115,19 @@ func MapValuesToSlice[Map ~map[K]V, K comparable, V any](m Map) []V {
 	return slices.AppendSeq(s, maps.Values(m))
 }
 
-func Unique[T comparable](s []T) []T {
-	m := make(map[T]struct{})
-	ret := make([]T, 0, len(s))
-	for _, v := range s {
-		if _, ok := m[v]; !ok {
-			m[v] = struct{}{}
-			ret = append(ret, v)
-		}
+func MapKeysToSlice[Map ~map[K]V, K comparable, V any](m Map) []K {
+	s := make([]K, 0, len(m))
+	return slices.AppendSeq(s, maps.Keys(m))
+}
+
+func Unique[S ~[]E, E cmp.Ordered](list S) S {
+	if list == nil {
+		return nil
 	}
-	return ret
+	out := make([]E, len(list))
+	copy(out, list)
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 func ConvertSeq[In, Out any](seq iter.Seq[In], f func(In) Out) iter.Seq[Out] {

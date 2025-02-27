@@ -8,11 +8,11 @@ require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/gin-contrib/pprof v1.5.2
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/goccy/go-json v0.10.5
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/jinzhu/copier v0.4.0
-	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v1.0.0
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.2
@@ -38,6 +38,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
@@ -56,7 +57,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.25.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
