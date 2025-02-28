@@ -33,12 +33,13 @@ type ConfigForGuests struct {
 }
 
 type ConfigDashboard struct {
-	Debug         bool   `koanf:"debug" json:"debug,omitempty"`                   // debug模式开关
-	RealIPHeader  string `koanf:"real_ip_header" json:"real_ip_header,omitempty"` // 真实IP
-	UserTemplate  string `koanf:"user_template" json:"user_template,omitempty"`
-	AdminTemplate string `koanf:"admin_template" json:"admin_template,omitempty"`
-	Location      string `koanf:"location" json:"location,omitempty"`     // 时区，默认为 Asia/Shanghai
-	ForceAuth     bool   `koanf:"force_auth" json:"force_auth,omitempty"` // 强制要求认证
+	Debug          bool   `koanf:"debug" json:"debug,omitempty"`                   // debug模式开关
+	RealIPHeader   string `koanf:"real_ip_header" json:"real_ip_header,omitempty"` // 真实IP
+	UserTemplate   string `koanf:"user_template" json:"user_template,omitempty"`
+	AdminTemplate  string `koanf:"admin_template" json:"admin_template,omitempty"`
+	Location       string `koanf:"location" json:"location,omitempty"`     // 时区，默认为 Asia/Shanghai
+	ForceAuth      bool   `koanf:"force_auth" json:"force_auth,omitempty"` // 强制要求认证
+	AgentSecretKey string `koanf:"agent_secret_key" json:"agent_secret_key,omitempty"`
 
 	EnablePlainIPInNotification bool `koanf:"enable_plain_ip_in_notification" json:"enable_plain_ip_in_notification,omitempty"` // 通知信息IP不打码
 
@@ -57,10 +58,9 @@ type Config struct {
 	ConfigForGuests
 	ConfigDashboard
 
-	JWTSecretKey   string `koanf:"jwt_secret_key" json:"jwt_secret_key,omitempty"`
-	AgentSecretKey string `koanf:"agent_secret_key" json:"agent_secret_key,omitempty"`
-	ListenPort     uint16 `koanf:"listen_port" json:"listen_port,omitempty"`
-	ListenHost     string `koanf:"listen_host" json:"listen_host,omitempty"`
+	JWTSecretKey string `koanf:"jwt_secret_key" json:"jwt_secret_key,omitempty"`
+	ListenPort   uint16 `koanf:"listen_port" json:"listen_port,omitempty"`
+	ListenHost   string `koanf:"listen_host" json:"listen_host,omitempty"`
 
 	// oauth2 配置
 	Oauth2 map[string]*Oauth2Config `koanf:"oauth2" json:"oauth2,omitempty"`
