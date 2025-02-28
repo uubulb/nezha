@@ -2,13 +2,13 @@ package rpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/netip"
 	"time"
 
+	"github.com/goccy/go-json"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"

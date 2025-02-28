@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
