@@ -91,16 +91,23 @@ func InitDBFromPath(path string) {
 }
 
 // RecordTransferHourlyUsage 对流量记录进行打点
-func RecordTransferHourlyUsage() {
-	ServerShared.listMu.RLock()
-	defer ServerShared.listMu.RUnlock()
-
+func RecordTransferHourlyUsage(servers ...*model.Server) {
 	now := time.Now()
 	nowTrimSeconds := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+
 	var txs []model.Transfer
-	for id, server := range ServerShared.list {
+	var slist iter.Seq[*model.Server]
+	if len(servers) > 0 {
+		slist = slices.Values(servers)
+	} else {
+		ServerShared.listMu.RLock()
+		defer ServerShared.listMu.RUnlock()
+		slist = maps.Values(ServerShared.list)
+	}
+
+	for server := range slist {
 		tx := model.Transfer{
-			ServerID: id,
+			ServerID: server.ID,
 			In:       utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot),
 			Out:      utils.Uint64SubInt64(server.State.NetOutTransfer, server.PrevTransferOutSnapshot),
 		}
@@ -112,6 +119,7 @@ func RecordTransferHourlyUsage() {
 		tx.CreatedAt = nowTrimSeconds
 		txs = append(txs, tx)
 	}
+
 	if len(txs) == 0 {
 		return
 	}

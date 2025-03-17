@@ -69,7 +69,7 @@ func initSystem() error {
 	}
 
 	// 每小时对流量记录进行打点
-	if _, err := singleton.CronShared.AddFunc("0 0 * * * *", singleton.RecordTransferHourlyUsage); err != nil {
+	if _, err := singleton.CronShared.AddFunc("0 0 * * * *", func() { singleton.RecordTransferHourlyUsage() }); err != nil {
 		return err
 	}
 	return nil
