@@ -132,8 +132,8 @@ func ManualTrigger(cr *model.Cron) {
 
 func CronTrigger(cr *model.Cron, triggerServer ...uint64) func() {
 	crIgnoreMap := make(map[uint64]bool)
-	for j := range cr.Servers {
-		crIgnoreMap[cr.Servers[j]] = true
+	for _, server := range cr.Servers {
+		crIgnoreMap[server] = true
 	}
 	return func() {
 		if cr.Cover == model.CronCoverAlertTrigger {
