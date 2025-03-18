@@ -43,13 +43,15 @@ func listConfig(c *gin.Context) (*model.SettingResponse, error) {
 
 	if !authorized || !isAdmin {
 		configForGuests := config.ConfigForGuests
+		var configDashboard model.ConfigDashboard
 		if authorized {
-			configForGuests.AgentTLS = singleton.Conf.AgentTLS
-			configForGuests.InstallHost = singleton.Conf.InstallHost
+			configDashboard.AgentTLS = singleton.Conf.AgentTLS
+			configDashboard.InstallHost = singleton.Conf.InstallHost
 		}
 		conf = model.SettingResponse{
 			Config: model.Setting{
 				ConfigForGuests: configForGuests,
+				ConfigDashboard: configDashboard,
 				Oauth2Providers: config.Oauth2Providers,
 			},
 		}
@@ -107,7 +109,6 @@ func updateConfig(c *gin.Context) (any, error) {
 		return nil, newGormError("%v", err)
 	}
 
-	singleton.OnNameserverUpdate()
 	singleton.OnUpdateLang(singleton.Conf.Language)
 	return nil, nil
 }
