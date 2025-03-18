@@ -35,6 +35,7 @@ func (iw *IOStreamWrapper) Read(p []byte) (n int, err error) {
 	if len(iw.dataBuf) > 0 {
 		n := copy(p, iw.dataBuf)
 		iw.dataBuf = iw.dataBuf[n:]
+		clear(iw.dataBuf[:n])
 		return n, nil
 	}
 	var data *proto.IOStreamData
@@ -45,6 +46,7 @@ func (iw *IOStreamWrapper) Read(p []byte) (n int, err error) {
 	if n < len(data.Data) {
 		iw.dataBuf = data.Data[n:]
 	}
+	clear(data.Data[:n])
 	return n, nil
 }
 

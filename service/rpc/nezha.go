@@ -139,7 +139,7 @@ func (s *NezhaHandler) onReportSystemInfo(c context.Context, r *pb.Host) error {
 
 	server, ok := singleton.ServerShared.Get(clientID)
 	if !ok || server == nil {
-		return fmt.Errorf("server not found")
+		return errors.New("server not found")
 	}
 
 	/**

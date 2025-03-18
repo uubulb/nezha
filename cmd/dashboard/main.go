@@ -108,11 +108,11 @@ func main() {
 	}
 
 	// 初始化 dao 包
-	singleton.InitFrontendTemplates()
-	singleton.InitConfigFromPath(dashboardCliParam.ConfigFile)
-	singleton.InitTimezoneAndCache()
-	singleton.InitDBFromPath(dashboardCliParam.DatabaseLocation)
-	if err := initSystem(); err != nil {
+	if err := utils.FirstError(singleton.InitFrontendTemplates,
+		func() error { return singleton.InitConfigFromPath(dashboardCliParam.ConfigFile) },
+		singleton.InitTimezoneAndCache,
+		func() error { return singleton.InitDBFromPath(dashboardCliParam.DatabaseLocation) },
+		initSystem); err != nil {
 		log.Fatal(err)
 	}
 

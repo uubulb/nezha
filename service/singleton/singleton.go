@@ -39,14 +39,15 @@ var (
 //go:embed frontend-templates.yaml
 var frontendTemplatesYAML []byte
 
-func InitTimezoneAndCache() {
+func InitTimezoneAndCache() error {
 	var err error
 	Loc, err = time.LoadLocation(Conf.Location)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	Cache = cache.New(5*time.Minute, 10*time.Minute)
+	return nil
 }
 
 // LoadSingleton 加载子服务并执行
@@ -61,21 +62,22 @@ func LoadSingleton() {
 }
 
 // InitFrontendTemplates 从内置文件中加载FrontendTemplates
-func InitFrontendTemplates() {
+func InitFrontendTemplates() error {
 	err := yaml.Unmarshal(frontendTemplatesYAML, &FrontendTemplates)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // InitDBFromPath 从给出的文件路径中加载数据库
-func InitDBFromPath(path string) {
+func InitDBFromPath(path string) error {
 	var err error
 	DB, err = gorm.Open(sqlite.Open(path), &gorm.Config{
 		CreateBatchSize: 200,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if Conf.Debug {
 		DB = DB.Debug()
@@ -86,8 +88,9 @@ func InitDBFromPath(path string) {
 		model.NAT{}, model.DDNSProfile{}, model.NotificationGroupNotification{},
 		model.WAF{}, model.Oauth2Bind{})
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // RecordTransferHourlyUsage 对流量记录进行打点
@@ -100,9 +103,7 @@ func RecordTransferHourlyUsage(servers ...*model.Server) {
 	if len(servers) > 0 {
 		slist = slices.Values(servers)
 	} else {
-		ServerShared.listMu.RLock()
-		defer ServerShared.listMu.RUnlock()
-		slist = maps.Values(ServerShared.list)
+		slist = utils.Seq2To1(ServerShared.Range)
 	}
 
 	for server := range slist {

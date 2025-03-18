@@ -38,6 +38,7 @@ func (conn *Conn) Read(data []byte) (int, error) {
 	if len(conn.dataBuf) > 0 {
 		n := copy(data, conn.dataBuf)
 		conn.dataBuf = conn.dataBuf[n:]
+		clear(conn.dataBuf[:n])
 		return n, nil
 	}
 	mType, innerData, err := conn.Conn.ReadMessage()
@@ -52,5 +53,6 @@ func (conn *Conn) Read(data []byte) (int, error) {
 	if n < len(innerData) {
 		conn.dataBuf = innerData[n:]
 	}
+	clear(innerData[:n])
 	return n, nil
 }

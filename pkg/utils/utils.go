@@ -159,6 +159,16 @@ func ConvertSeq2[KIn, VIn, KOut, VOut any](seq iter.Seq2[KIn, VIn], f func(KIn, 
 	}
 }
 
+func Seq2To1[K, V any](seq iter.Seq2[K, V]) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, v := range seq {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 type WrapError struct {
 	err, errIn error
 }
@@ -173,4 +183,13 @@ func (e *WrapError) Error() string {
 
 func (e *WrapError) Unwrap() error {
 	return e.errIn
+}
+
+func FirstError(errorer ...func() error) error {
+	for _, fn := range errorer {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
