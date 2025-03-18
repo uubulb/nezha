@@ -119,8 +119,8 @@ func (s *NezhaHandler) ReportSystemState(stream pb.NezhaService_ReportSystemStat
 
 		// 应对 dashboard / agent 重启的情况，如果从未记录过，先打点，等到小时时间点时入库
 		if server.PrevTransferInSnapshot == 0 || server.PrevTransferOutSnapshot == 0 {
-			server.PrevTransferInSnapshot = int64(state.NetInTransfer)
-			server.PrevTransferOutSnapshot = int64(state.NetOutTransfer)
+			server.PrevTransferInSnapshot = state.NetInTransfer
+			server.PrevTransferOutSnapshot = state.NetOutTransfer
 		}
 
 		if err = stream.Send(&pb.Receipt{Proced: true}); err != nil {

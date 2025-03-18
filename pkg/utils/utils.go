@@ -91,16 +91,6 @@ func MustGenerateRandomString(n int) string {
 	return str
 }
 
-func Uint64SubInt64(a uint64, b int64) uint64 {
-	if b < 0 {
-		return a + uint64(-b)
-	}
-	if a < uint64(b) {
-		return 0
-	}
-	return a - uint64(b)
-}
-
 func IfOr[T any](a bool, x, y T) T {
 	if a {
 		return x
@@ -192,4 +182,12 @@ func FirstError(errorer ...func() error) error {
 		}
 	}
 	return nil
+}
+
+func SubUintChecked[T constraints.Unsigned](a, b T) T {
+	if a < b {
+		return 0
+	}
+
+	return a - b
 }
