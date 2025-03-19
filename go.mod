@@ -19,6 +19,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/libdns/cloudflare v0.1.3
+	github.com/libdns/he v1.0.2
 	github.com/libdns/libdns v0.2.3
 	github.com/miekg/dns v1.1.63
 	github.com/nezhahq/libdns-tencentcloud v0.0.0-20241029120103-889957240fff
@@ -84,6 +85,7 @@ require (
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
