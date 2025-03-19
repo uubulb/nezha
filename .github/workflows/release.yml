@@ -25,18 +25,14 @@ jobs:
     container:
       image: goreleaser/goreleaser-cross:v1.24
     steps:
-      - run: |
-          apt update && apt install unzip curl -y
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-          chmod +x /usr/bin/yq
-
       - run: git config --global --add safe.directory /__w/nezha/nezha
 
       - uses: actions/checkout@v4
 
       - name: Prepare frontends' dists
         run: |
-          chmod +x ./script/fetch-frontends.sh && ./script/fetch-frontends.sh
+          pip3 install requests pyyaml
+          python3 ./script/fetch-frontends.py
 
       - name: Fetch IPInfo GeoIP Database
         env:
