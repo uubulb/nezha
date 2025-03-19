@@ -37,8 +37,8 @@ func (conn *Conn) WriteMessage(messageType int, data []byte) error {
 func (conn *Conn) Read(data []byte) (int, error) {
 	if len(conn.dataBuf) > 0 {
 		n := copy(data, conn.dataBuf)
-		conn.dataBuf = conn.dataBuf[n:]
 		clear(conn.dataBuf[:n])
+		conn.dataBuf = conn.dataBuf[n:]
 		return n, nil
 	}
 	mType, innerData, err := conn.Conn.ReadMessage()

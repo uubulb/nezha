@@ -34,8 +34,8 @@ func NewIOStreamWrapper(stream IOStream) *IOStreamWrapper {
 func (iw *IOStreamWrapper) Read(p []byte) (n int, err error) {
 	if len(iw.dataBuf) > 0 {
 		n := copy(p, iw.dataBuf)
-		iw.dataBuf = iw.dataBuf[n:]
 		clear(iw.dataBuf[:n])
+		iw.dataBuf = iw.dataBuf[n:]
 		return n, nil
 	}
 	var data *proto.IOStreamData
