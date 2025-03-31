@@ -88,7 +88,7 @@ func (provider *Provider) addDomainRecord(ctx context.Context) error {
 	return err
 }
 
-func (provider *Provider) splitDomainSOA(ctx context.Context, domain string) (prefix string, zone string, err error) {
+func (provider *Provider) splitDomainSOA(ctx context.Context, domain string) (string, string, error) {
 	c := &dns.Client{Timeout: dnsTimeOut}
 
 	domain += "."
@@ -101,21 +101,21 @@ func (provider *Provider) splitDomainSOA(ctx context.Context, domain string) (pr
 		servers = customDNSServers
 	}
 
-	var r *dns.Msg
-	for _, idx := range indexes {
-		var m dns.Msg
-		m.SetQuestion(domain[idx:], dns.TypeSOA)
+	for _, server := range servers {
+		for _, idx := range indexes {
+			var m dns.Msg
+			m.SetQuestion(domain[idx:], dns.TypeSOA)
 
-		for _, server := range servers {
-			r, _, err = c.Exchange(&m, server)
+			r, _, err := c.Exchange(&m, server)
 			if err != nil {
-				return
+				continue
 			}
+
 			if len(r.Answer) > 0 {
 				if soa, ok := r.Answer[0].(*dns.SOA); ok {
-					zone = soa.Hdr.Name
-					prefix = libdns.RelativeName(domain, zone)
-					return
+					zone := soa.Hdr.Name
+					prefix := libdns.RelativeName(domain, zone)
+					return prefix, zone, nil
 				}
 			}
 		}
