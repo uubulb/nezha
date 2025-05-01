@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/netip"
 	"time"
 
 	"github.com/libdns/libdns"
@@ -70,13 +71,16 @@ func (provider *Provider) updateDomain(ctx context.Context, domain string) error
 }
 
 func (provider *Provider) addDomainRecord(ctx context.Context, recType, addr string) error {
-	_, err := provider.Setter.SetRecords(ctx, provider.zone,
+	netip, err := netip.ParseAddr(addr)
+	if err != nil {
+		return fmt.Errorf("parse error: %v", err)
+	}
+
+	_, err = provider.Setter.SetRecords(ctx, provider.zone,
 		[]libdns.Record{
-			{
-				Type:  recType,
-				Name:  provider.prefix,
-				Value: addr,
-				TTL:   time.Minute,
+			libdns.Address{
+				Name: provider.prefix,
+				IP:   netip,
 			},
 		})
 	return err
