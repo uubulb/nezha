@@ -65,7 +65,7 @@ func (provider *Provider) SetRecords(ctx context.Context, zone string,
 				return nil, fmt.Errorf("failed to update a domain: %s. Cause by: %v", provider.domain, err)
 			}
 		default:
-			return nil, errors.New("unsupported record type")
+			return nil, fmt.Errorf("unsupported record type: %T", rec)
 		}
 	}
 

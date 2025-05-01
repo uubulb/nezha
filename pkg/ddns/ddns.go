@@ -71,7 +71,7 @@ func (provider *Provider) updateDomain(ctx context.Context, domain string) error
 }
 
 func (provider *Provider) addDomainRecord(ctx context.Context, recType, addr string) error {
-	netip, err := netip.ParseAddr(addr)
+	netipAddr, err := netip.ParseAddr(addr)
 	if err != nil {
 		return fmt.Errorf("parse error: %v", err)
 	}
@@ -80,7 +80,8 @@ func (provider *Provider) addDomainRecord(ctx context.Context, recType, addr str
 		[]libdns.Record{
 			libdns.Address{
 				Name: provider.prefix,
-				IP:   netip,
+				IP:   netipAddr,
+				TTL:  time.Minute,
 			},
 		})
 	return err
